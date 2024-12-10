@@ -95,6 +95,14 @@ public enum MekanismConfigTranslations implements IConfigTranslation {
     //Common Config
     COMMON_UNIT_ENERGY("common.unit.energy", "Energy Unit", "Displayed energy type in Mekanism GUIs (client) and network reader readings (server)."),
     COMMON_UNIT_TEMPERATURE("common.unit.temperature", "Temperature Unit", "Displayed temperature unit in Mekanism GUIs (client) and network reader readings (server)."),
+    COMMON_UNIT_ENERGY_BASIC_ROUNDING(
+            "common.unit.energy.basic_rounding",
+            "Energy Unit Basic Rounding",
+            "Number of decimal places to round basic (i.e. standard) energy displays."),
+    COMMON_UNIT_ENERGY_DETAILED_ROUNDING(
+            "common.unit.energy.detailed_rounding",
+            "Energy Unit Detailed Rounding",
+            "Number of decimal places to round detailed energy displays."),
     COMMON_DECAY_TIMERS("common.decay_timers", "Decay Timers",
           "Display the time it will take for radiation to decay when readings are above safe levels. Set this to false on the client side to disable "
           + "MekaSuit Geiger and Dosimeter Unit timers. Set this to false on the server side to disable handheld Geiger Counter and Dosimeter timers."),

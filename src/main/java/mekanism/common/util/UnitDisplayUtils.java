@@ -12,6 +12,8 @@ import mekanism.api.functions.ConstantPredicates;
 import mekanism.api.text.IHasTranslationKey;
 import mekanism.api.text.ILangEntry;
 import mekanism.api.text.TextComponentUtil;
+import mekanism.client.key.MekKeyHandler;
+import mekanism.client.key.MekanismKeyHandler;
 import mekanism.common.MekanismLang;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.config.value.CachedDoubleValue;
@@ -50,7 +52,10 @@ public class UnitDisplayUtils {
     };
 
     public static Component getDisplayShort(double value, EnergyUnit unit) {
-        return getDisplayBase(value, unit, 2, true, true);
+        int places = MekKeyHandler.isKeyPressed(MekanismKeyHandler.detailsKey) ?
+                MekanismConfig.common.energyUnitDetailedRounding.get()
+                : MekanismConfig.common.energyUnitBasicRounding.get();
+        return getDisplayBase(value, unit, places, true, true);
     }
 
     public static Component getDisplay(double temp, TemperatureUnit unit, int decimalPlaces, boolean shift, boolean isShort, boolean spaceBetweenSymbol) {

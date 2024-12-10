@@ -2,6 +2,7 @@ package mekanism.common.config;
 
 import mekanism.common.config.value.CachedBooleanValue;
 import mekanism.common.config.value.CachedEnumValue;
+import mekanism.common.config.value.CachedIntValue;
 import mekanism.common.util.UnitDisplayUtils.EnergyUnit;
 import mekanism.common.util.UnitDisplayUtils.TemperatureUnit;
 import net.neoforged.fml.config.ModConfig.Type;
@@ -13,6 +14,8 @@ public class CommonConfig extends BaseMekanismConfig {
 
     public final CachedEnumValue<EnergyUnit> energyUnit;
     public final CachedEnumValue<TemperatureUnit> tempUnit;
+    public final CachedIntValue energyUnitBasicRounding;
+    public final CachedIntValue energyUnitDetailedRounding;
     public final CachedBooleanValue enableDecayTimers;
     public final CachedBooleanValue copyBlockData;
     public final CachedBooleanValue holidays;
@@ -24,6 +27,10 @@ public class CommonConfig extends BaseMekanismConfig {
               .defineEnum("energyType", EnergyUnit.FORGE_ENERGY));
         tempUnit = CachedEnumValue.wrap(this, MekanismConfigTranslations.COMMON_UNIT_TEMPERATURE.applyToBuilder(builder)
               .defineEnum("temperatureUnit", TemperatureUnit.KELVIN));
+        energyUnitBasicRounding = CachedIntValue.wrap(this, MekanismConfigTranslations.COMMON_UNIT_ENERGY_BASIC_ROUNDING.applyToBuilder(builder)
+                .define("energyUnitBasicRounding", 2));
+        energyUnitDetailedRounding = CachedIntValue.wrap(this, MekanismConfigTranslations.COMMON_UNIT_ENERGY_DETAILED_ROUNDING.applyToBuilder(builder)
+                .define("energyUnitDetailedRounding", 3));
         enableDecayTimers = CachedBooleanValue.wrap(this, MekanismConfigTranslations.COMMON_DECAY_TIMERS.applyToBuilder(builder)
               .define("enableDecayTimers", true));
         copyBlockData = CachedBooleanValue.wrap(this, MekanismConfigTranslations.COMMON_COPY_BLOCK_DATA.applyToBuilder(builder)
