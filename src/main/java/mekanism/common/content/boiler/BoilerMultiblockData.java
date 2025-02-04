@@ -19,7 +19,6 @@ import mekanism.api.math.MathUtils;
 import mekanism.common.block.attribute.AttributeStateBoilerValveMode.BoilerValveMode;
 import mekanism.common.capabilities.chemical.VariableCapacityChemicalTank;
 import mekanism.common.capabilities.fluid.VariableCapacityFluidTank;
-import mekanism.common.capabilities.heat.VariableHeatCapacitor;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerChemicalTankWrapper;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerFluidTankWrapper;
@@ -78,9 +77,6 @@ public class BoilerMultiblockData extends MultiblockData implements IValveHandle
     @WrappingComputerMethod(wrapper = ComputerChemicalTankWrapper.class, methodNames = {"getSteam", "getSteamCapacity", "getSteamNeeded",
                                                                                         "getSteamFilledPercentage"}, docPlaceholder = "steam tank")
     public IChemicalTank steamTank;
-    @ContainerSync
-    @WrappingComputerMethod(wrapper = ComputerHeatCapacitorWrapper.class, methodNames = "getTemperature", docPlaceholder = "boiler")
-    public VariableHeatCapacitor heatCapacitor;
 
     private double biomeAmbientTemp;
     @ContainerSync

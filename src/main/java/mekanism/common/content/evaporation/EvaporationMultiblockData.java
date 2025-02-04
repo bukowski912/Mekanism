@@ -8,6 +8,7 @@ import java.util.function.BooleanSupplier;
 import mekanism.api.IEvaporationSolar;
 import mekanism.api.SerializationConstants;
 import mekanism.api.heat.HeatAPI;
+import mekanism.api.heat.IHeatCapacitor;
 import mekanism.api.recipes.FluidToFluidRecipe;
 import mekanism.api.recipes.cache.CachedRecipe;
 import mekanism.api.recipes.cache.CachedRecipe.OperationTracker.RecipeError;
@@ -22,7 +23,7 @@ import mekanism.client.recipe_viewer.type.RecipeViewerRecipeType;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.capabilities.fluid.BasicFluidTank;
 import mekanism.common.capabilities.fluid.VariableCapacityFluidTank;
-import mekanism.common.capabilities.heat.VariableHeatCapacitor;
+import mekanism.common.capabilities.heat.BasicHeatCapacitor;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerFluidTankWrapper;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerIInventorySlotWrapper;
@@ -75,8 +76,6 @@ public class EvaporationMultiblockData extends MultiblockData implements IValveH
     @WrappingComputerMethod(wrapper = ComputerFluidTankWrapper.class, methodNames = {"getOutput", "getOutputCapacity", "getOutputNeeded",
                                                                                      "getOutputFilledPercentage"}, docPlaceholder = "output tank")
     public BasicFluidTank outputTank;
-    @ContainerSync
-    public VariableHeatCapacitor heatCapacitor;
 
     private double biomeAmbientTemp;
     private double tempMultiplier;
@@ -125,7 +124,16 @@ public class EvaporationMultiblockData extends MultiblockData implements IValveH
         inventorySlots.add(outputOutputSlot = OutputInventorySlot.at(this, 152, 51));
         inputInputSlot.setSlotType(ContainerSlotType.INPUT);
         inputOutputSlot.setSlotType(ContainerSlotType.INPUT);
-        heatCapacitors.add(heatCapacitor = VariableHeatCapacitor.create(MekanismConfig.general.evaporationHeatCapacity.get() * 3, () -> biomeAmbientTemp, this));
+        //TODO: Add proper thermals for this.
+        heatManifold.setCapacitor(new BasicHeatCapacitor(MekanismConfig.general.evaporationHeatCapacity.get() * 3));
+    }
+
+    private IHeatCapacitor getHeatCapacitor() {
+        return heatManifold.getCapacitor();
+    }
+
+    private void setHeatCapacity(double heatCapacity, boolean updateHeat) {
+        getHeatCapacitor().setHeatCapacity(heatCapacity, updateHeat);
     }
 
     @Override
@@ -133,7 +141,7 @@ public class EvaporationMultiblockData extends MultiblockData implements IValveH
         super.onCreated(world);
         biomeAmbientTemp = calculateAverageAmbientTemperature(world);
         // update the heat capacity now that we've read
-        heatCapacitor.setHeatCapacity(MekanismConfig.general.evaporationHeatCapacity.get() * height(), true);
+        setHeatCapacity(MekanismConfig.general.evaporationHeatCapacity.get() * height(), true);
         updateSolars(world);
     }
 
@@ -151,7 +159,7 @@ public class EvaporationMultiblockData extends MultiblockData implements IValveH
         // external heat dissipation
         lastEnvironmentLoss = simulateEnvironment();
         // update temperature
-        updateHeatCapacitors(null);
+        heatManifold.simulateTransfer(world.getGameTime());
         //After we update the heat capacitors, update our temperature multiplier
         // Note: We use the ambient temperature without taking our biome into account as we want to have a consistent multiplier
         tempMultiplier = (Math.min(MAX_MULTIPLIER_TEMP, getTemperature()) - HeatAPI.AMBIENT_TEMP) * MekanismConfig.general.evaporationTempMultiplier.get() *
@@ -188,29 +196,9 @@ public class EvaporationMultiblockData extends MultiblockData implements IValveH
         writeValves(tag);
     }
 
-    @Override
-    public double simulateEnvironment() {
-        double currentTemperature = getTemperature();
-        double heatCapacity = heatCapacitor.getHeatCapacity();
-        heatCapacitor.handleHeat(getActiveSolars() * MekanismConfig.general.evaporationSolarMultiplier.get() * heatCapacity);
-        if (Math.abs(currentTemperature - biomeAmbientTemp) < 0.001) {
-            heatCapacitor.handleHeat(biomeAmbientTemp * heatCapacity - heatCapacitor.getHeat());
-        } else {
-            double incr = MekanismConfig.general.evaporationHeatDissipation.get() * Math.sqrt(Math.abs(currentTemperature - biomeAmbientTemp));
-            if (currentTemperature > biomeAmbientTemp) {
-                incr = -incr;
-            }
-            heatCapacitor.handleHeat(heatCapacity * incr);
-            if (incr < 0) {
-                return -incr;
-            }
-        }
-        return 0;
-    }
-
     @ComputerMethod
     public double getTemperature() {
-        return heatCapacitor.getTemperature();
+        return getHeatCapacitor().getTemperature();
     }
 
     @Override

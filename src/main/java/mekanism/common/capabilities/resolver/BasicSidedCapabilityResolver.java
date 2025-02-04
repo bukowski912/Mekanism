@@ -89,6 +89,10 @@ public class BasicSidedCapabilityResolver<HANDLER, SIDED_HANDLER extends HANDLER
     public interface ProxyCreator<HANDLER, SIDED_HANDLER extends HANDLER> {
 
         HANDLER create(SIDED_HANDLER handler, @Nullable Direction side, @Nullable IHolder holder);
+
+        static <HANDLER, SIDED_HANDLER extends HANDLER> ProxyCreator<HANDLER, SIDED_HANDLER> identity() {
+            return (handler, side, holder) -> handler;
+        }
     }
 
     @FunctionalInterface

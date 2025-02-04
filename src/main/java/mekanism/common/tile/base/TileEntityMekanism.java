@@ -24,6 +24,7 @@ import mekanism.api.energy.IEnergyContainer;
 import mekanism.api.energy.IMekanismStrictEnergyHandler;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.fluid.IMekanismFluidHandler;
+import mekanism.api.heat.HeatAPI;
 import mekanism.api.heat.IHeatCapacitor;
 import mekanism.api.heat.IHeatHandler;
 import mekanism.api.inventory.IInventorySlot;
@@ -60,7 +61,6 @@ import mekanism.common.capabilities.Capabilities;
 import mekanism.common.capabilities.energy.MachineEnergyContainer;
 import mekanism.common.capabilities.heat.BasicHeatCapacitor;
 import mekanism.common.capabilities.heat.CachedAmbientTemperature;
-import mekanism.common.capabilities.heat.ITileHeatHandler;
 import mekanism.common.capabilities.holder.chemical.IChemicalTankHolder;
 import mekanism.common.capabilities.holder.energy.IEnergyContainerHolder;
 import mekanism.common.capabilities.holder.fluid.IFluidTankHolder;
@@ -151,7 +151,7 @@ import org.jetbrains.annotations.Nullable;
 //TODO: We need to move the "supports" methods into the source interfaces so that we make sure they get checked before being used
 public abstract class TileEntityMekanism extends CapabilityTileEntity implements IFrequencyHandler, ITileDirectional, IConfigCardAccess, ITileActive, ITileSound,
       ITileRedstone, ISecurityTile, IMekanismInventory, ITileUpgradable, ITierUpgradable, IComparatorSupport, ITrackableContainer, IMekanismFluidHandler,
-      IMekanismStrictEnergyHandler, ITileHeatHandler, IMekanismChemicalHandler, IComputerTile, ITileRadioactive, Nameable {
+      IMekanismStrictEnergyHandler, IHeatHandler, IMekanismChemicalHandler, IComputerTile, ITileRadioactive, Nameable {
 
     /**
      * The players currently using this block.
@@ -649,7 +649,7 @@ public abstract class TileEntityMekanism extends CapabilityTileEntity implements
         if (tile.canHandleHeat()) {
             // update heat after server tick as we now have simulated changes
             // we use persists, as only one reference should update
-            tile.updateHeatCapacitors(null);
+            HeatAPI.simulateAdjacent(tile);
         }
         //Set that we received zero energy so if it is a different tick than we last had,
         // and we don't actually receive anything then we will properly update it to zero
@@ -1415,14 +1415,6 @@ public abstract class TileEntityMekanism extends CapabilityTileEntity implements
     @Nullable
     protected IHeatCapacitorHolder getInitialHeatCapacitors(IContentsListener listener, CachedAmbientTemperature ambientTemperature) {
         return null;
-    }
-
-    @Override
-    public double getAmbientTemperature(@NotNull Direction side) {
-        if (canHandleHeat() && ambientTemperature != null) {
-            return ambientTemperature.getTemperature(side);
-        }
-        return ITileHeatHandler.super.getAmbientTemperature(side);
     }
 
     @Nullable

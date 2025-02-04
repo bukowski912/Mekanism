@@ -24,7 +24,7 @@ public class HeatCapacitorHelper {
         return new HeatCapacitorHelper(new ConfigHeatCapacitorHolder(sideConfiguration));
     }
 
-    public <CAPACITOR extends IHeatCapacitor> CAPACITOR addCapacitor(@NotNull CAPACITOR capacitor) {
+    public <CAPACITOR extends IHeatCapacitor> void addCapacitor(@NotNull CAPACITOR capacitor) {
         if (built) {
             throw new IllegalStateException("Builder has already built.");
         }
@@ -35,7 +35,6 @@ public class HeatCapacitorHelper {
         } else {
             throw new IllegalArgumentException("Holder does not know how to add capacitors");
         }
-        return capacitor;
     }
 
     public <CAPACITOR extends IHeatCapacitor> CAPACITOR addCapacitor(@NotNull CAPACITOR capacitor, RelativeSide... sides) {

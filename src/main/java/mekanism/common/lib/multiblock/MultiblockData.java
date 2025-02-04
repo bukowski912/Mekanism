@@ -1,13 +1,8 @@
 package mekanism.common.lib.multiblock;
 
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
@@ -23,10 +18,11 @@ import mekanism.api.energy.IMekanismStrictEnergyHandler;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.fluid.IMekanismFluidHandler;
 import mekanism.api.heat.HeatAPI;
-import mekanism.api.heat.IHeatCapacitor;
+import mekanism.api.heat.IHeatHandler.ISingleHeatManifold;
+import mekanism.api.heat.IHeatManifold;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.inventory.IMekanismInventory;
-import mekanism.common.capabilities.heat.ITileHeatHandler;
+import mekanism.common.capabilities.heat.BasicHeatManifold;
 import mekanism.common.integration.computer.annotation.ComputerMethod;
 import mekanism.common.integration.energy.BlockEnergyCapabilityCache;
 import mekanism.common.inventory.container.sync.dynamic.ContainerSync;
@@ -52,7 +48,7 @@ import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class MultiblockData implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, ITileHeatHandler, IMekanismChemicalHandler {
+public class MultiblockData implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, ISingleHeatManifold, IMekanismChemicalHandler {
 
     public Set<BlockPos> locations = new ObjectOpenHashSet<>();
     /**
@@ -91,7 +87,7 @@ public class MultiblockData implements IMekanismInventory, IMekanismFluidHandler
     protected final List<IExtendedFluidTank> fluidTanks = new ArrayList<>();
     protected final List<IChemicalTank> chemicalTanks = new ArrayList<>();
     protected final List<IEnergyContainer> energyContainers = new ArrayList<>();
-    protected final List<IHeatCapacitor> heatCapacitors = new ArrayList<>();
+    protected final IHeatManifold heatManifold = new BasicHeatManifold();
 
     private final BiPredicate<Object, @NotNull AutomationType> formedBiPred = (t, automationType) -> isFormed();
     private final BiPredicate<Object, @NotNull AutomationType> notExternalFormedBiPred = (t, automationType) -> automationType != AutomationType.EXTERNAL && isFormed();
@@ -391,10 +387,17 @@ public class MultiblockData implements IMekanismInventory, IMekanismFluidHandler
         return isFormed() || isRemote() ? energyContainers : Collections.emptyList();
     }
 
-    @NotNull
     @Override
-    public List<IHeatCapacitor> getHeatCapacitors(Direction side) {
-        return isFormed() || isRemote() ? heatCapacitors : Collections.emptyList();
+    public boolean hasHeatManifold() {
+        return isFormed() || isRemote();
+    }
+
+    @Override
+    public @NotNull IHeatManifold getHeatManifold() {
+        if (!hasHeatManifold()) {
+            throw new UnsupportedOperationException();
+        }
+        return Objects.requireNonNull(heatManifold);
     }
 
     public boolean isKnownLocation(BlockPos pos) {

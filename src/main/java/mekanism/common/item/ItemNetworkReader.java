@@ -133,7 +133,8 @@ public class ItemNetworkReader extends ItemEnergized {
     }
 
     private void sendTemperature(Player player, IHeatHandler handler) {
-        Component temp = MekanismUtils.getTemperatureDisplay(handler.getTotalTemperature(), TemperatureUnit.KELVIN, true);
+        //TODO: Maybe check temperature of all capacitors?
+        Component temp = MekanismUtils.getTemperatureDisplay(handler.getTemperature(), TemperatureUnit.KELVIN, true);
         player.sendSystemMessage(MekanismLang.NETWORK_READER_TEMPERATURE.translateColored(EnumColor.GRAY, EnumColor.DARK_GRAY, temp));
     }
 

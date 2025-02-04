@@ -6,81 +6,48 @@ import mekanism.api.SerializationConstants;
 import mekanism.api.annotations.NothingNullByDefault;
 import mekanism.api.heat.HeatAPI;
 import mekanism.api.heat.IHeatCapacitor;
+import mekanism.api.heat.IHeatManifold;
+import mekanism.api.heat.Thermals;
+import mekanism.common.Mekanism;
 import mekanism.common.util.NBTUtils;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @NothingNullByDefault
 public class BasicHeatCapacitor implements IHeatCapacitor {
 
-    @Nullable
-    private final IContentsListener listener;
+    private @Nullable IHeatManifold heatManifold;
 
     private double heatCapacity;
+    private Thermals thermals;
 
-    @Nullable
-    private final DoubleSupplier ambientTempSupplier;
-    private final double inverseConductionCoefficient;
-    private final double inverseInsulationCoefficient;
-
-    // set to ambient * heat capacity by default
-    private double storedHeat = -1;
+    private double storedHeat;
     private double heatToHandle;
 
-    public static BasicHeatCapacitor create(double heatCapacity, @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {
-        return create(heatCapacity, HeatAPI.DEFAULT_INVERSE_CONDUCTION, HeatAPI.DEFAULT_INVERSE_INSULATION, ambientTempSupplier, listener);
+    private final @Nullable IContentsListener listener;
+    private final @Nullable DoubleSupplier ambientTempSupplier;
+
+    public BasicHeatCapacitor(double heatCapacity) {
+        this(heatCapacity, Thermals.AMBIENT);
     }
 
-    public static BasicHeatCapacitor create(double heatCapacity, double inverseConductionCoefficient, double inverseInsulationCoefficient,
-          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {
-        if (heatCapacity < 1) {
-            throw new IllegalArgumentException("Heat capacity must be at least one");
-        }
-        if (inverseConductionCoefficient < 1) {
-            throw new IllegalArgumentException("Inverse conduction coefficient must be at least one");
-        }
-        return new BasicHeatCapacitor(heatCapacity, inverseConductionCoefficient, inverseInsulationCoefficient, ambientTempSupplier, listener);
+    public BasicHeatCapacitor(double heatCapacity, Thermals thermals) {
+        this(heatCapacity, thermals, null, null);
     }
 
-    protected BasicHeatCapacitor(double heatCapacity, double inverseConductionCoefficient, double inverseInsulationCoefficient,
-          @Nullable DoubleSupplier ambientTempSupplier, @Nullable IContentsListener listener) {
-        this.heatCapacity = heatCapacity;
-        this.inverseConductionCoefficient = inverseConductionCoefficient;
-        this.inverseInsulationCoefficient = inverseInsulationCoefficient;
-        this.ambientTempSupplier = ambientTempSupplier;
+    public BasicHeatCapacitor(double heatCapacity, Thermals thermals, @Nullable IContentsListener listener, @Nullable DoubleSupplier ambientTempSupplier) {
+        this.heatCapacity = HeatAPI.validateHeatCapacity(heatCapacity);
+        this.thermals = HeatAPI.validateThermals(thermals);
+        this.storedHeat = getAmbientTemperature();
         this.listener = listener;
-    }
-
-    private void initStoredHeat() {
-        if (storedHeat == -1) {
-            //If the stored heat hasn't been initialized yet, update the stored heat based on initial capacity
-            storedHeat = heatCapacity * getAmbientTemperature();
-        }
+        this.ambientTempSupplier = ambientTempSupplier;
     }
 
     protected double getAmbientTemperature() {
         return ambientTempSupplier == null ? HeatAPI.AMBIENT_TEMP : ambientTempSupplier.getAsDouble();
-    }
-
-    @Override
-    public double getTemperature() {
-        return getHeat() / getHeatCapacity();
-    }
-
-    @Override
-    public double getInverseConduction() {
-        return inverseConductionCoefficient;
-    }
-
-    @Override
-    public double getInverseInsulation() {
-        return inverseInsulationCoefficient;
-    }
-
-    @Override
-    public double getHeatCapacity() {
-        return heatCapacity;
     }
 
     @Override
@@ -95,9 +62,9 @@ public class BasicHeatCapacitor implements IHeatCapacitor {
         heatToHandle += transfer;
     }
 
-    public void update() {
-        if (heatToHandle != 0 && Math.abs(heatToHandle) > HeatAPI.EPSILON) {
-            initStoredHeat();
+    @Override
+    public void updateHeat() {
+        if (Math.abs(heatToHandle) > HeatAPI.EPSILON) {
             storedHeat += heatToHandle;
             //notify listeners
             onContentsChanged();
@@ -108,39 +75,78 @@ public class BasicHeatCapacitor implements IHeatCapacitor {
 
     @Override
     public void deserializeNBT(HolderLookup.Provider provider, CompoundTag nbt) {
-        NBTUtils.setDoubleIfPresent(nbt, SerializationConstants.STORED, heat -> storedHeat = heat);
-        NBTUtils.setDoubleIfPresent(nbt, SerializationConstants.HEAT_CAPACITY, capacity -> setHeatCapacity(capacity, false));
+        NBTUtils.setDoubleIfPresent(nbt, SerializationConstants.STORED, this::setHeat);
+        NBTUtils.setDoubleIfPresent(nbt, SerializationConstants.HEAT_CAPACITY, this::setHeatCapacity);
     }
 
     @Override
     public CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        CompoundTag nbt = IHeatCapacitor.super.serializeNBT(provider);
+        CompoundTag nbt = new CompoundTag();
+        nbt.putDouble(SerializationConstants.STORED, getHeat());
         nbt.putDouble(SerializationConstants.HEAT_CAPACITY, getHeatCapacity());
         return nbt;
     }
 
     @Override
-    public double getHeat() {
-        initStoredHeat();
+    public final double getHeat() {
+        if (storedHeat <= 0) {
+            Mekanism.logger.error("Negative stored heat: {}", storedHeat);
+            return getAmbientTemperature() * getHeatCapacity();
+        }
         return storedHeat;
     }
 
     @Override
-    public void setHeat(double heat) {
+    public final void setHeat(double heat) {
         if (getHeat() != heat) {
             storedHeat = heat;
             onContentsChanged();
         }
     }
 
-    public void setHeatCapacity(double newCapacity, boolean updateHeat) {
-        if (updateHeat && storedHeat != -1) {
-            setHeat(getHeat() + (newCapacity - getHeatCapacity()) * getAmbientTemperature());
-        }
-        heatCapacity = newCapacity;
+    @Override
+    public @Nullable IHeatManifold getManifold() {
+        return heatManifold;
     }
 
-    public void setHeatCapacityFromPacket(double newCapacity) {
-        heatCapacity = newCapacity;
+    @Override
+    public final double getHeatCapacity() {
+        return heatCapacity;
+    }
+
+    @Override
+    public void setManifold(@Nullable IHeatManifold heatManifold) {
+        this.heatManifold = heatManifold;
+    }
+
+    @Override
+    public void setHeatCapacity(double newCapacity, boolean updateHeat) {
+        if (updateHeat && storedHeat != -1) {
+            setHeat(storedHeat + (newCapacity - heatCapacity) * getAmbientTemperature());
+        }
+        setHeatCapacity(newCapacity);
+    }
+
+    private final void setHeatCapacity(double heatCapacity) {
+        this.heatCapacity = HeatAPI.validateHeatCapacity(heatCapacity);
+    }
+
+    @Override
+    public @NotNull Thermals getThermals(@Nullable Direction side) {
+        return getThermals();
+    }
+
+    public final @NotNull Thermals getThermals() {
+        return thermals;
+    }
+
+    @Override
+    public void setThermals(Thermals thermals, @Nullable Direction side) {
+        setThermals(thermals);
+    }
+
+    @Override
+    public final void setThermals(Thermals thermals) {
+        this.thermals = HeatAPI.validateThermals(thermals);
     }
 }

@@ -2,7 +2,6 @@ package mekanism.common.tile.machine;
 
 import mekanism.api.IContentsListener;
 import mekanism.api.SerializationConstants;
-import mekanism.api.heat.HeatAPI.HeatTransfer;
 import mekanism.common.capabilities.heat.BasicHeatCapacitor;
 import mekanism.common.capabilities.heat.CachedAmbientTemperature;
 import mekanism.common.capabilities.holder.heat.HeatCapacitorHelper;

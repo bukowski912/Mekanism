@@ -1,53 +1,50 @@
 package mekanism.api.heat;
 
 import mekanism.api.IContentsListener;
-import mekanism.api.SerializationConstants;
 import mekanism.api.annotations.NothingNullByDefault;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.common.util.INBTSerializable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+/**
+ * A heat capacitor is the smallest unit of heat storage in Mekanism. It stores heat energy in the form of joules,
+ * and is goverened by its heat capacity and thermal properties ('thermals' for short).
+ */
 @NothingNullByDefault
 public interface IHeatCapacitor extends INBTSerializable<CompoundTag>, IContentsListener {
 
-    /**
-     * Returns the temperature of this capacitor.
-     *
-     * @return Temperature of this capacitor. Always bounded by absolute zero (0 degrees kelvin).
-     */
-    double getTemperature();
+    @Nullable IHeatManifold getManifold();
 
-    /**
-     * Returns the inverse conduction coefficient of this capacitor. This value defines how much heat is allowed to be dissipated. The larger the number the less heat can
-     * dissipate. The trade-off is that it also allows for lower amounts of heat to be inserted.
-     *
-     * @return Inverse conduction coefficient of this capacitor.
-     *
-     * @apiNote Must be greater than {@code 0}
-     */
-    double getInverseConduction();
+    void setManifold(@Nullable IHeatManifold heatManifold);
 
-    /**
-     * Returns the inverse insulation coefficient for this. The larger the value the less heat dissipates into the environment.
-     *
-     * @return Inverse insulation coefficient of this capacitor.
-     */
-    double getInverseInsulation();
-
-    /**
-     * Returns the heat capacity of this capacitor. This number can be thought of as specific heat x mass of the capacitor itself.
-     *
-     * @return Heat capacity of this capacitor.
-     *
-     * @apiNote Must be at least {@code 1}
-     */
     double getHeatCapacity();
 
-    /**
-     * Returns the heat stored in this capacitor.
-     *
-     * @return Heat stored in this capacitor.
-     */
+    void setHeatCapacity(double heatCapacity, boolean updateHeat);
+
+    @NotNull Thermals getThermals(@Nullable Direction side);
+
+    default @NotNull Thermals getThermals() {
+        return getThermals(null);
+    }
+
+    default void setThermals(Thermals thermals, @Nullable Direction side) {
+        throw new UnsupportedOperationException();
+    }
+
+    default void setThermals(Thermals thermals) {
+        setThermals(thermals, null);
+    }
+
+    default double getTemperature() {
+        return getHeat() * getHeatCapacity();
+    }
+
+    default void setTemperature(double temperature) {
+        setHeat(temperature * getHeatCapacity());
+    }
+
     double getHeat();
 
     /**
@@ -55,24 +52,25 @@ public interface IHeatCapacitor extends INBTSerializable<CompoundTag>, IContents
      *
      * @param heat Heat to set this capacitor's storage to (may be {@code 0}).
      *
-     * @throws RuntimeException if the handler is called in a way that the handler was not expecting. Such as if it was not expecting this to be called at all.
-     * @implNote If the internal amount does get updated make sure to call {@link #onContentsChanged()}
+     * @throws UnsupportedOperationException if heat assignment is either undefined or disallowed in this context.
      */
-    void setHeat(double heat);
+    default void setHeat(double heat) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
-     * Handles a change of heat in this capacitor. Can be positive or negative.
+     * Handles a change of heat in this capacitor.
      *
-     * @param transfer The amount being transferred.
+     * @param transfer The amount being transferred. Can be positive (for insertion) or negative (for removal).
      *
-     * @implNote If the internal amount does get updated make sure to call {@link #onContentsChanged()}
+     * @implNote Can be called several times per tick; the values of successive calls should be accumulated.
      */
     void handleHeat(double transfer);
 
-    @Override
-    default CompoundTag serializeNBT(HolderLookup.Provider provider) {
-        CompoundTag nbt = new CompoundTag();
-        nbt.putDouble(SerializationConstants.STORED, getHeat());
-        return nbt;
-    }
+    /**
+     * Applies any heat accumulated by {@link #handleHeat(double)} to this capacitor.
+     *
+     * @implNote Should ideally only be called once per tick.
+     */
+    void updateHeat();
 }

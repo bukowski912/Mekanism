@@ -12,15 +12,12 @@ import mekanism.api.chemical.IChemicalTank;
 import mekanism.api.energy.IEnergyContainer;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.heat.HeatAPI;
-import mekanism.api.heat.HeatAPI.HeatTransfer;
 import mekanism.api.heat.IHeatCapacitor;
 import mekanism.api.math.MathUtils;
 import mekanism.common.capabilities.Capabilities;
 import mekanism.common.capabilities.chemical.VariableCapacityChemicalTank;
 import mekanism.common.capabilities.energy.VariableCapacityEnergyContainer;
 import mekanism.common.capabilities.fluid.VariableCapacityFluidTank;
-import mekanism.common.capabilities.heat.ITileHeatHandler;
-import mekanism.common.capabilities.heat.VariableHeatCapacitor;
 import mekanism.common.integration.computer.ComputerException;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerChemicalTankWrapper;
 import mekanism.common.integration.computer.SpecialComputerMethodWrapper.ComputerFluidTankWrapper;
@@ -56,7 +53,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
-import org.jetbrains.annotations.NotNull;
 
 public class FusionReactorMultiblockData extends MultiblockData {
 
@@ -355,9 +351,8 @@ public class FusionReactorMultiblockData extends MultiblockData {
         }
     }
 
-    @NotNull
     @Override
-    public HeatTransfer simulate() {
+    public double simulate() {
         double environmentTransfer = 0;
         double adjacentTransfer = 0;
         for (ITileHeatHandler source : heatHandlers) {

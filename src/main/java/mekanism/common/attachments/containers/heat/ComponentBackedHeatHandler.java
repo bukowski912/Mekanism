@@ -3,18 +3,19 @@ package mekanism.common.attachments.containers.heat;
 import java.util.List;
 import mekanism.api.annotations.NothingNullByDefault;
 import mekanism.api.heat.IHeatCapacitor;
-import mekanism.api.heat.IMekanismHeatHandler;
+import mekanism.api.heat.IHeatHandler;
 import mekanism.common.attachments.containers.ComponentBackedHandler;
 import mekanism.common.attachments.containers.ContainerType;
+import mekanism.common.capabilities.heat.BasicHeatCapacitor;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 @NothingNullByDefault
-public class ComponentBackedHeatHandler extends ComponentBackedHandler<HeatCapacitorData, IHeatCapacitor, AttachedHeat> implements IMekanismHeatHandler {
+public class ComponentBackedHeatHandler extends ComponentBackedHandler<HeatCapacitorData, IHeatCapacitor, AttachedHeat> implements IHeatHandler {
 
-    public ComponentBackedHeatHandler(ItemStack attachedTo, int totalCapacitors) {
-        super(attachedTo, totalCapacitors);
+    public ComponentBackedHeatHandler(ItemStack attachedTo) {
+        super(attachedTo);
     }
 
     @Override
@@ -23,19 +24,8 @@ public class ComponentBackedHeatHandler extends ComponentBackedHandler<HeatCapac
     }
 
     @Override
-    public int getHeatCapacitorCount(@Nullable Direction side) {
-        return size();
-    }
-
-    @Override
-    public List<IHeatCapacitor> getHeatCapacitors(@Nullable Direction side) {
-        return getContainers();
-    }
-
-    @Nullable
-    @Override
-    public IHeatCapacitor getHeatCapacitor(int capacitor, @Nullable Direction side) {
-        return getContainer(capacitor);
+    public IHeatCapacitor getCapacitor(@Nullable Direction side) {
+        return getContainer();
     }
 
     @Override

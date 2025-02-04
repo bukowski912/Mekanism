@@ -4,7 +4,10 @@ import com.mojang.math.Constants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.LevelReader;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 public class HeatAPI {
 
@@ -81,6 +84,18 @@ public class HeatAPI {
         return AMBIENT_TEMP + 25 * (biomeTemp - 0.8);
     }
 
-    public record HeatTransfer(double adjacentTransfer, double environmentTransfer) {
+    public static double validateHeatCapacity(double heatCapacity) {
+        if (heatCapacity < 1) {
+            throw new IllegalArgumentException("Heat capacity must be at least one");
+        }
+        return heatCapacity;
+    }
+
+    public static @NotNull Thermals validateThermals(Thermals thermals) {
+        Objects.requireNonNull(thermals);
+        if (thermals.inverseConduction() < 1) {
+            throw new IllegalArgumentException("Inverse conduction coefficient must be at least one");
+        }
+        return thermals;
     }
 }

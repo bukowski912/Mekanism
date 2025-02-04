@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import mekanism.api.IContentsListener;
 import mekanism.api.chemical.IChemicalHandler;
-import mekanism.api.heat.IHeatHandler;
 import mekanism.api.text.EnumColor;
 import mekanism.common.attachments.containers.ContainerType;
 import mekanism.common.capabilities.Capabilities;

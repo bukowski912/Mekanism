@@ -1,6 +1,7 @@
 package mekanism.common.tier;
 
 import mekanism.api.heat.HeatAPI;
+import mekanism.api.heat.Thermals;
 import mekanism.api.tier.BaseTier;
 import mekanism.api.tier.ITier;
 import mekanism.common.config.value.CachedDoubleValue;
@@ -14,19 +15,11 @@ public enum ConductorTier implements ITier {
     ULTIMATE(BaseTier.ULTIMATE, 5, HeatAPI.DEFAULT_HEAT_CAPACITY, 100_000, Color.rgbad(0.2, 0.2, 0.2, 1));
 
     private final Color baseColor;
-    private final double baseConduction;
-    private final double baseHeatCapacity;
-    private final double baseConductionInsulation;
+    private final Thermals baseThermals;
     private final BaseTier baseTier;
-    private CachedDoubleValue conductionReference;
-    private CachedDoubleValue capacityReference;
-    private CachedDoubleValue insulationReference;
 
-    ConductorTier(BaseTier tier, double conduction, double heatCapacity, double conductionInsulation, Color color) {
-        baseConduction = conduction;
-        baseHeatCapacity = heatCapacity;
-        baseConductionInsulation = conductionInsulation;
-
+    ConductorTier(BaseTier tier, double conduction, double heatCapacity, double insulation, Color color) {
+        baseThermals = new Thermals(conduction, insulation, heatCapacity);
         baseColor = color;
         baseTier = tier;
     }
@@ -45,40 +38,25 @@ public enum ConductorTier implements ITier {
         return baseTier;
     }
 
-    public double getInverseConduction() {
-        return conductionReference == null ? getBaseConduction() : conductionReference.getOrDefault();
+    public Thermals getThermalProfile() {
+        return new Thermals(getInverseConduction(), getInverseInsulation(), getHeatCapacity());
     }
 
-    public double getInverseConductionInsulation() {
-        return insulationReference == null ? getBaseConductionInsulation() : insulationReference.getOrDefault();
+    private double getInverseConduction() {
+        return getBaseThermals().inverseConduction();
     }
 
-    public double getHeatCapacity() {
-        return capacityReference == null ? getBaseHeatCapacity() : capacityReference.getOrDefault();
+    private double getInverseInsulation() {
+        return getBaseThermals().inverseInsulation();
+    }
+
+    private double getHeatCapacity() {
+        return getBaseThermals().heatCapacity();
     }
 
     public Color getBaseColor() {
         return baseColor;
     }
 
-    public double getBaseConduction() {
-        return baseConduction;
-    }
-
-    public double getBaseHeatCapacity() {
-        return baseHeatCapacity;
-    }
-
-    public double getBaseConductionInsulation() {
-        return baseConductionInsulation;
-    }
-
-    /**
-     * ONLY CALL THIS FROM TierConfig. It is used to give the BinTier a reference to the actual config value object
-     */
-    public void setConfigReference(CachedDoubleValue conductionReference, CachedDoubleValue capacityReference, CachedDoubleValue insulationReference) {
-        this.conductionReference = conductionReference;
-        this.capacityReference = capacityReference;
-        this.insulationReference = insulationReference;
-    }
+    public Thermals getBaseThermals() { return baseThermals; }
 }

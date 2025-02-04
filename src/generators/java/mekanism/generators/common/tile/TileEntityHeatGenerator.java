@@ -4,9 +4,8 @@ import mekanism.api.Action;
 import mekanism.api.AutomationType;
 import mekanism.api.IContentsListener;
 import mekanism.api.RelativeSide;
-import mekanism.api.heat.HeatAPI;
-import mekanism.api.heat.HeatAPI.HeatTransfer;
-import mekanism.api.heat.IHeatHandler;
+import mekanism.api.heat.IHeatCapacitor.ThermalProfile;
+import mekanism.api.heat.Thermals;
 import mekanism.api.math.MathUtils;
 import mekanism.common.attachments.containers.ContainerType;
 import mekanism.common.capabilities.fluid.BasicFluidTank;
@@ -47,9 +46,8 @@ import org.jetbrains.annotations.Nullable;
 
 public class TileEntityHeatGenerator extends TileEntityGenerator {
 
-    public static final double HEAT_CAPACITY = 10;
-    public static final double INVERSE_CONDUCTION_COEFFICIENT = 5;
-    public static final double INVERSE_INSULATION_COEFFICIENT = 100;
+    public static final Thermals THERMALS = new Thermals(5, 100, 10);
+
     private static final double THERMAL_EFFICIENCY = 0.5;
     //Default configs this is 510 compared to the previous 500
     private static final ConfigBasedCachedLongSupplier MAX_PRODUCTION = new ConfigBasedCachedLongSupplier(() -> {
@@ -65,11 +63,10 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
                                                                                      "getLavaFilledPercentage"}, docPlaceholder = "lava tank")
     public BasicFluidTank lavaTank;
     private long producingEnergy = 0;
-    private double lastTransferLoss;
-    private double lastEnvironmentLoss;
+    private double lastHeatLoss;
 
     @WrappingComputerMethod(wrapper = ComputerHeatCapacitorWrapper.class, methodNames = "getTemperature", docPlaceholder = "generator")
-    BasicHeatCapacitor heatCapacitor;
+    private BasicHeatCapacitor heatCapacitor;
     @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getFuelItem", docPlaceholder = "fuel item slot")
     FluidFuelInventorySlot fuelSlot;
     @WrappingComputerMethod(wrapper = ComputerIInventorySlotWrapper.class, methodNames = "getEnergyItem", docPlaceholder = "energy item slot")
@@ -105,7 +102,13 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
     @Override
     protected IHeatCapacitorHolder getInitialHeatCapacitors(IContentsListener listener, CachedAmbientTemperature ambientTemperature) {
         HeatCapacitorHelper builder = HeatCapacitorHelper.forSide(facingSupplier);
-        builder.addCapacitor(heatCapacitor = BasicHeatCapacitor.create(HEAT_CAPACITY, INVERSE_CONDUCTION_COEFFICIENT, INVERSE_INSULATION_COEFFICIENT, ambientTemperature, listener));
+        heatCapacitor = new BasicHeatCapacitor(THERMALS, ambientTemperature, listener) {
+            @Override
+            public @NotNull Thermals getThermals(@Nullable Direction side) {
+                return side == Direction.DOWN ? Thermals.AMBIENT : super.getThermals(side);
+            }
+        };
+        builder.addCapacitor(heatCapacitor);
         return builder.build();
     }
 
@@ -128,9 +131,7 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
         } else {
             setActive(false);
         }
-        HeatTransfer loss = simulate();
-        lastTransferLoss = loss.adjacentTransfer();
-        lastEnvironmentLoss = loss.environmentTransfer();
+        lastHeatLoss = simulate();
         producingEnergy = getEnergyContainer().getEnergy() - prev;
         return sendUpdatePacket;
     }
@@ -169,20 +170,9 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
     }
 
     @Override
-    public double getInverseInsulation(int capacitor, @Nullable Direction side) {
-        return side == Direction.DOWN ? HeatAPI.DEFAULT_INVERSE_INSULATION : super.getInverseInsulation(capacitor, side);
-    }
-
-    @Override
-    public double getTotalInverseInsulation(@Nullable Direction side) {
-        return side == Direction.DOWN ? HeatAPI.DEFAULT_INVERSE_INSULATION : super.getTotalInverseInsulation(side);
-    }
-
-    @NotNull
-    @Override
-    public HeatTransfer simulate() {
+    public double simulate() {
         double ambientTemp = ambientTemperature.getAsDouble();
-        double temp = getTotalTemperature();
+        double temp = heatCapacitor.getTemperature();
         // 1 - Qc / Qh
         double carnotEfficiency = 1 - Math.min(ambientTemp, temp) / Math.max(ambientTemp, temp);
         double heatLost = THERMAL_EFFICIENCY * (temp - ambientTemp);
@@ -192,25 +182,14 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
         return super.simulate();
     }
 
-    @Nullable
-    @Override
-    public IHeatHandler getAdjacent(@NotNull Direction side) {
-        return side == Direction.DOWN ? getAdjacentUnchecked(side) : null;
-    }
-
     @Override
     public long getProductionRate() {
         return producingEnergy;
     }
 
     @ComputerMethod(nameOverride = "getTransferLoss")
-    public double getLastTransferLoss() {
-        return lastTransferLoss;
-    }
-
-    @ComputerMethod(nameOverride = "getEnvironmentalLoss")
-    public double getLastEnvironmentLoss() {
-        return lastEnvironmentLoss;
+    public double getLastHeatLoss() {
+        return lastHeatLoss;
     }
 
     @Override
@@ -227,7 +206,7 @@ public class TileEntityHeatGenerator extends TileEntityGenerator {
     public void addContainerTrackers(MekanismContainer container) {
         super.addContainerTrackers(container);
         container.track(SyncableLong.create(this::getProductionRate, value -> producingEnergy = value));
-        container.track(SyncableDouble.create(this::getLastTransferLoss, value -> lastTransferLoss = value));
+        container.track(SyncableDouble.create(this::getLastHeatLoss, value -> lastHeatLoss = value));
         container.track(SyncableDouble.create(this::getLastEnvironmentLoss, value -> lastEnvironmentLoss = value));
     }
 }

@@ -26,8 +26,8 @@ import mekanism.api.energy.IMekanismStrictEnergyHandler;
 import mekanism.api.energy.IStrictEnergyHandler;
 import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.fluid.IMekanismFluidHandler;
-import mekanism.api.heat.HeatAPI;
-import mekanism.api.heat.IHeatCapacitor;
+import mekanism.api.heat.*;
+import mekanism.api.heat.IHeatHandler.ISingleHeatManifold;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.inventory.IMekanismInventory;
 import mekanism.api.security.SecurityMode;
@@ -35,7 +35,7 @@ import mekanism.common.capabilities.chemical.IChemicalTracker;
 import mekanism.common.capabilities.energy.BasicEnergyContainer;
 import mekanism.common.capabilities.fluid.BasicFluidTank;
 import mekanism.common.capabilities.heat.BasicHeatCapacitor;
-import mekanism.common.capabilities.heat.ITileHeatHandler;
+import mekanism.common.capabilities.heat.BasicHeatManifold;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.content.network.EnergyNetwork;
 import mekanism.common.content.network.distribution.ChemicalHandlerTarget;
@@ -69,7 +69,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class InventoryFrequency extends Frequency implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, ITileHeatHandler, IChemicalTracker {
+public class InventoryFrequency extends Frequency implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, ISingleHeatManifold, IChemicalTracker {
 
     public static final Codec<InventoryFrequency> CODEC = RecordCodecBuilder.create(instance -> instance.group(
           ExtraCodecs.NON_EMPTY_STRING.fieldOf(SerializationConstants.NAME).forGetter(Frequency::getName),
@@ -132,13 +132,12 @@ public class InventoryFrequency extends Frequency implements IMekanismInventory,
     private IChemicalTank storedChemical;
     private BasicInventorySlot storedItem;
     public IEnergyContainer storedEnergy;
-    private BasicHeatCapacitor storedHeat;
 
     private List<IInventorySlot> inventorySlots;
     private List<IChemicalTank> chemicalTanks;
     private List<IExtendedFluidTank> fluidTanks;
     private List<IEnergyContainer> energyContainers;
-    private List<IHeatCapacitor> heatCapacitors;
+    private BasicHeatManifold heatManifold;
 
     /**
      * @param uuid Should only be null if we have incomplete data that we are loading
@@ -186,10 +185,9 @@ public class InventoryFrequency extends Frequency implements IMekanismInventory,
         return energyContainers;
     }
 
-    @NotNull
     @Override
-    public List<IHeatCapacitor> getHeatCapacitors(@Nullable Direction side) {
-        return heatCapacitors;
+    public IHeatManifold getHeatManifold() {
+        return heatManifold;
     }
 
     @Override

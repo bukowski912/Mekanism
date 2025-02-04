@@ -1,5 +1,6 @@
 package mekanism.common.capabilities.resolver.manager;
 
+import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -25,6 +26,11 @@ public class CapabilityHandlerManager<HOLDER extends IHolder, CONTAINER, HANDLER
         this.holder = holder;
         this.canHandle = this.holder != null;
         this.containerGetter = containerGetter;
+    }
+
+    protected CapabilityHandlerManager(@Nullable HOLDER holder, SIDED_HANDLER baseHandler, BlockCapability<HANDLER, @Nullable Direction> supportedCapability,
+            BiFunction<HOLDER, Direction, List<CONTAINER>> containerGetter) {
+        this(holder, baseHandler, supportedCapability, ProxyCreator.identity(), containerGetter);
     }
 
     @Override

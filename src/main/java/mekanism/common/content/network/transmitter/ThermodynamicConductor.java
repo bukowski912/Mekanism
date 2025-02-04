@@ -1,8 +1,6 @@
 package mekanism.common.content.network.transmitter;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 import mekanism.api.SerializationConstants;
 import mekanism.api.heat.IHeatCapacitor;
@@ -11,9 +9,8 @@ import mekanism.api.providers.IBlockProvider;
 import mekanism.common.attachments.containers.ContainerType;
 import mekanism.common.block.attribute.Attribute;
 import mekanism.common.capabilities.Capabilities;
+import mekanism.common.capabilities.heat.BasicHeatCapacitor;
 import mekanism.common.capabilities.heat.CachedAmbientTemperature;
-import mekanism.common.capabilities.heat.ITileHeatHandler;
-import mekanism.common.capabilities.heat.VariableHeatCapacitor;
 import mekanism.common.content.network.HeatNetwork;
 import mekanism.common.lib.Color;
 import mekanism.common.lib.transmitter.TransmissionType;
@@ -31,21 +28,19 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ThermodynamicConductor extends Transmitter<IHeatHandler, HeatNetwork, ThermodynamicConductor> implements ITileHeatHandler,
+public class ThermodynamicConductor extends Transmitter<IHeatHandler, HeatNetwork, ThermodynamicConductor> implements IHeatHandler,
       IUpgradeableTransmitter<ThermodynamicConductorUpgradeData> {
 
     private final CachedAmbientTemperature ambientTemperature = new CachedAmbientTemperature(this::getLevel, this::getBlockPos);
     public final ConductorTier tier;
     //Default to negative one, so we know we need to calculate it when needed
     private double clientTemperature = -1;
-    private final List<IHeatCapacitor> capacitors;
-    public final VariableHeatCapacitor buffer;
+    public final BasicHeatCapacitor buffer;
 
     public ThermodynamicConductor(IBlockProvider blockProvider, TileEntityTransmitter tile) {
         super(tile, TransmissionType.HEAT);
         this.tier = Attribute.getTier(blockProvider, ConductorTier.class);
-        buffer = VariableHeatCapacitor.create(tier.getHeatCapacity(), tier::getInverseConduction, tier::getInverseConductionInsulation, ambientTemperature, this);
-        capacitors = Collections.singletonList(buffer);
+        buffer = new BasicHeatCapacitor(tier.getBaseThermals(), ambientTemperature, this);
     }
 
     @Override
@@ -137,8 +132,8 @@ public class ThermodynamicConductor extends Transmitter<IHeatHandler, HeatNetwor
 
     @NotNull
     @Override
-    public List<IHeatCapacitor> getHeatCapacitors(Direction side) {
-        return capacitors;
+    public IHeatCapacitor getHeatCapacitor() {
+        return buffer;
     }
 
     @Override

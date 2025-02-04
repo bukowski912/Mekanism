@@ -3,7 +3,6 @@ package mekanism.common.content.network;
 import java.util.Collection;
 import java.util.UUID;
 import mekanism.api.heat.HeatAPI;
-import mekanism.api.heat.HeatAPI.HeatTransfer;
 import mekanism.api.heat.IHeatHandler;
 import mekanism.common.MekanismLang;
 import mekanism.common.content.network.transmitter.ThermodynamicConductor;
@@ -57,8 +56,8 @@ public class HeatNetwork extends DynamicNetwork<IHeatHandler, HeatNetwork, Therm
         // we do this after instead of when iterating initially so that if heat is transferred from one
         // conductor to one we already updated then we want it to have the proper total temperature
         for (ThermodynamicConductor transmitter : getTransmitters()) {
-            transmitter.updateHeatCapacitors(null);
-            newSumTemp += transmitter.getTotalTemperature();
+            transmitter.updateHeatCapacitor(null);
+            newSumTemp += transmitter.getTemperature();
         }
         heatLost = newHeatLost;
         heatTransferred = newHeatTransferred;

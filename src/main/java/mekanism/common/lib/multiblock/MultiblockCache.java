@@ -12,7 +12,7 @@ import mekanism.api.fluid.IExtendedFluidTank;
 import mekanism.api.fluid.IMekanismFluidHandler;
 import mekanism.api.heat.HeatAPI;
 import mekanism.api.heat.IHeatCapacitor;
-import mekanism.api.heat.IMekanismHeatHandler;
+import mekanism.api.heat.IHeatHandler;
 import mekanism.api.inventory.IInventorySlot;
 import mekanism.api.inventory.IMekanismInventory;
 import mekanism.common.attachments.containers.ContainerType;
@@ -31,7 +31,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class MultiblockCache<T extends MultiblockData> implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, IMekanismHeatHandler,
+public class MultiblockCache<T extends MultiblockData> implements IMekanismInventory, IMekanismFluidHandler, IMekanismStrictEnergyHandler, IHeatHandler,
       IMekanismChemicalHandler {
 
     private final List<IInventorySlot> inventorySlots = new ArrayList<>();
@@ -229,14 +229,14 @@ public class MultiblockCache<T extends MultiblockData> implements IMekanismInven
             }
         };
 
-        public static final CacheSubstance<IMekanismHeatHandler, IHeatCapacitor> HEAT = new CacheSubstance<>(ContainerType.HEAT) {
+        public static final CacheSubstance<IHeatHandler, IHeatCapacitor> HEAT = new CacheSubstance<>(ContainerType.HEAT) {
             @Override
             protected void defaultPrefab(MultiblockCache<?> cache) {
                 cache.heatCapacitors.add(BasicHeatCapacitor.create(HeatAPI.DEFAULT_HEAT_CAPACITY, null, cache));
             }
 
             @Override
-            protected List<IHeatCapacitor> containerList(IMekanismHeatHandler handler) {
+            protected List<IHeatCapacitor> containerList(IHeatHandler handler) {
                 return handler.getHeatCapacitors(null);
             }
 

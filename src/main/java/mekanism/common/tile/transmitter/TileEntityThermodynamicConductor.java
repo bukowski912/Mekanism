@@ -3,7 +3,7 @@ package mekanism.common.tile.transmitter;
 import java.util.Collections;
 import java.util.List;
 import mekanism.api.heat.IHeatCapacitor;
-import mekanism.api.heat.IMekanismHeatHandler;
+import mekanism.api.heat.IHeatHandler;
 import mekanism.api.providers.IBlockProvider;
 import mekanism.api.tier.BaseTier;
 import mekanism.common.block.states.BlockStateHelper;
@@ -33,7 +33,7 @@ public class TileEntityThermodynamicConductor extends TileEntityTransmitter {
                 return Collections.emptyList();
             }
             return conductor.getHeatCapacitors(direction);
-        }, new IMekanismHeatHandler() {
+        }, new IHeatHandler() {
             @NotNull
             @Override
             public List<IHeatCapacitor> getHeatCapacitors(@Nullable Direction side) {
