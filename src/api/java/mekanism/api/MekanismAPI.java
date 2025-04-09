@@ -11,8 +11,11 @@ import mekanism.api.robit.RobitSkin;
 import net.minecraft.core.DefaultedRegistry;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegistryBuilder;
@@ -164,4 +167,7 @@ public class MekanismAPI {
      */
     public static final Holder<Chemical> EMPTY_CHEMICAL_HOLDER = DeferredHolder.create(EMPTY_CHEMICAL_KEY);
 
+    public static final Holder<Fluid> EMPTY_FLUID_HOLDER = BuiltInRegistries.FLUID.wrapAsHolder(Fluids.EMPTY);
+
+    public static final ResourceKey<Fluid> EMPTY_FLUID_KEY = EMPTY_FLUID_HOLDER.unwrapKey().orElseThrow();
 }

@@ -2,11 +2,16 @@ package mekanism.client.recipe_viewer.jei;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.serialization.Codec;
+
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import mekanism.api.algebra.TypedIngredient;
+import mekanism.api.algebra.TypedStack;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.client.gui.IGuiWrapper;
 import mekanism.client.gui.element.GuiElement;
@@ -21,6 +26,8 @@ import mekanism.client.gui.element.slot.SlotType;
 import mekanism.client.recipe_viewer.RecipeViewerUtils;
 import mekanism.client.recipe_viewer.type.IRecipeViewerRecipeType;
 import mekanism.common.MekanismLang;
+import mekanism.common.algebra.Ingredients;
+import mekanism.common.algebra.Stacks;
 import mekanism.common.util.text.TextUtils;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.ITickTimer;
@@ -307,6 +314,18 @@ public abstract class BaseRecipeCategory<RECIPE> extends AbstractContainerEventH
         long max = stacks.stream().mapToLong(ChemicalStack::getAmount).filter(stackSize -> stackSize > 0).max().orElse(FluidType.BUCKET_VOLUME);
         return init(builder, MekanismJEI.TYPE_CHEMICAL, role, element, stacks)
               .setCustomRenderer(MekanismJEI.TYPE_CHEMICAL, new ChemicalStackRenderer(max, width, height));
+    }
+
+    protected IRecipeSlotBuilder initTyped(IRecipeLayoutBuilder builder, RecipeIngredientRole role, GuiGauge<?> gauge, TypedIngredient<?> ingredient) {
+        return Ingredients.unwrap(ingredient,
+              fluid -> initFluid(builder, role, gauge, fluid.getRepresentations()),
+              chemical -> initChemical(builder, role, gauge, chemical.getRepresentations()));
+    }
+
+    protected IRecipeSlotBuilder initTyped(IRecipeLayoutBuilder builder, RecipeIngredientRole role, GuiGauge<?> gauge, TypedStack<?> stack) {
+        return Stacks.unwrap(stack,
+              fluid -> initFluid(builder, role, gauge, List.of(fluid)),
+              chemical -> initChemical(builder, role, gauge, List.of(chemical)));
     }
 
     private <STACK> IRecipeSlotBuilder init(IRecipeLayoutBuilder builder, IIngredientType<STACK> type, RecipeIngredientRole role, GuiElement element, List<STACK> stacks) {

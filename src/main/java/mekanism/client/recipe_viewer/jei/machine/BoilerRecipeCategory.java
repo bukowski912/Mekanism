@@ -3,6 +3,8 @@ package mekanism.client.recipe_viewer.jei.machine;
 import com.mojang.serialization.Codec;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
+
 import mekanism.api.heat.HeatAPI;
 import mekanism.api.math.MathUtils;
 import mekanism.api.text.EnumColor;
@@ -74,7 +76,7 @@ public class BoilerRecipeCategory extends BaseRecipeCategory<BoilerRecipeViewerR
     @Override
     protected void renderElements(BoilerRecipeViewerRecipe recipe, IRecipeSlotsView recipeSlotView, GuiGraphics guiGraphics, int x, int y) {
         super.renderElements(recipe, recipeSlotView, guiGraphics, x, y);
-        if (recipe.superHeatedCoolant() == null) {
+        if (recipe.heatedCoolant() == null) {
             superHeatedCoolantTank.drawBarOverlay(guiGraphics);
             cooledCoolantTank.drawBarOverlay(guiGraphics);
         }
@@ -89,18 +91,18 @@ public class BoilerRecipeCategory extends BaseRecipeCategory<BoilerRecipeViewerR
     @NotNull
     @Override
     public Codec<BoilerRecipeViewerRecipe> getCodec(@NotNull ICodecHelper codecHelper, @NotNull IRecipeManager recipeManager) {
-        return BoilerRecipeViewerRecipe.CODEC;
+        return BoilerRecipeViewerRecipe.CHEMICAL_TO_FLUID_CODEC;
     }
 
     @Override
     public void setRecipe(@NotNull IRecipeLayoutBuilder builder, BoilerRecipeViewerRecipe recipe, @NotNull IFocusGroup focusGroup) {
         initFluid(builder, RecipeIngredientRole.INPUT, waterTank, recipe.water().getRepresentations());
-        if (recipe.superHeatedCoolant() == null) {
+        if (recipe.heatedCoolant() == null) {
             initChemical(builder, RecipeIngredientRole.OUTPUT, steamTank, Collections.singletonList(recipe.steam()));
         } else {
-            initChemical(builder, RecipeIngredientRole.INPUT, superHeatedCoolantTank, recipe.superHeatedCoolant().getRepresentations());
+            initTyped(builder, RecipeIngredientRole.INPUT, superHeatedCoolantTank, recipe.heatedCoolant());
             initChemical(builder, RecipeIngredientRole.OUTPUT, steamTank, Collections.singletonList(recipe.steam()));
-            initChemical(builder, RecipeIngredientRole.OUTPUT, cooledCoolantTank, Collections.singletonList(recipe.cooledCoolant()));
+            initTyped(builder, RecipeIngredientRole.OUTPUT, cooledCoolantTank, recipe.cooledCoolant());
         }
     }
 }

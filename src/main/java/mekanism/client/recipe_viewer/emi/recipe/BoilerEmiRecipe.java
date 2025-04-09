@@ -23,12 +23,12 @@ public class BoilerEmiRecipe extends MekanismEmiRecipe<BoilerRecipeViewerRecipe>
         super(category, id, recipe);
         addInputDefinition(recipe.water());
         addChemicalOutputDefinition(List.of(recipe.steam()));
-        if (recipe.superHeatedCoolant() == null) {
+        if (recipe.heatedCoolant() == null) {
             addEmptyInput();
             addOutputDefinition(Collections.emptyList());
         } else {
-            addInputDefinition(recipe.superHeatedCoolant());
-            addChemicalOutputDefinition(List.of(recipe.cooledCoolant()));
+            addInputDefinition(recipe.heatedCoolant().toEmi());
+            addOutputDefinition(List.of(recipe.cooledCoolant().toEmi()));
         }
     }
 

@@ -2,23 +2,24 @@ package mekanism.client.recipe_viewer.recipe;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import mekanism.api.MekanismAPI;
 import mekanism.api.SerializationConstants;
+import mekanism.api.algebra.FormAlgebra;
+import mekanism.api.algebra.TypedIngredient;
+import mekanism.api.algebra.TypedStack;
 import mekanism.api.chemical.Chemical;
 import mekanism.api.chemical.ChemicalStack;
 import mekanism.api.chemical.attribute.ChemicalAttributes;
 import mekanism.api.datamaps.IMekanismDataMapTypes;
 import mekanism.api.datamaps.chemical.attribute.HeatedCoolant;
-import mekanism.api.recipes.ingredients.ChemicalStackIngredient;
 import mekanism.api.recipes.ingredients.FluidStackIngredient;
 import mekanism.api.recipes.ingredients.creator.IngredientCreatorAccess;
 import mekanism.client.recipe_viewer.RecipeViewerUtils;
 import mekanism.client.recipe_viewer.emi.INamedRVRecipe;
 import mekanism.common.Mekanism;
+import mekanism.common.algebra.Forms;
+import mekanism.common.algebra.Ingredients;
+import mekanism.common.algebra.Stacks;
 import mekanism.common.config.MekanismConfig;
 import mekanism.common.content.boiler.BoilerMultiblockData;
 import mekanism.common.registries.MekanismChemicals;
@@ -26,21 +27,36 @@ import mekanism.common.util.HeatUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
-import org.jetbrains.annotations.Nullable;
 
-public record BoilerRecipeViewerRecipe(ResourceLocation id, @Nullable ChemicalStackIngredient superHeatedCoolant, FluidStackIngredient water, ChemicalStack steam,
-                                       ChemicalStack cooledCoolant, double temperature) implements INamedRVRecipe {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public record BoilerRecipeViewerRecipe(
+      ResourceLocation id,
+      TypedIngredient<?> heatedCoolant,
+      FluidStackIngredient water,
+      ChemicalStack steam,
+      TypedStack<?> cooledCoolant,
+      double temperature) implements INamedRVRecipe {
 
     private static final int WATER_AMOUNT = 1;
-    public static final Codec<BoilerRecipeViewerRecipe> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-          ResourceLocation.CODEC.fieldOf(SerializationConstants.ID).forGetter(BoilerRecipeViewerRecipe::id),
-          ChemicalStackIngredient.CODEC.optionalFieldOf(SerializationConstants.CHEMICAL_INPUT).forGetter(recipe -> Optional.ofNullable(recipe.superHeatedCoolant())),
-          FluidStackIngredient.CODEC.optionalFieldOf(SerializationConstants.FLUID_INPUT, IngredientCreatorAccess.fluid().from(FluidTags.WATER, WATER_AMOUNT)).forGetter(BoilerRecipeViewerRecipe::water),
-          ChemicalStack.CODEC.optionalFieldOf(SerializationConstants.MAIN_OUTPUT, MekanismChemicals.STEAM.asStack(WATER_AMOUNT)).forGetter(BoilerRecipeViewerRecipe::steam),
-          ChemicalStack.CODEC.optionalFieldOf(SerializationConstants.SECONDARY_OUTPUT, ChemicalStack.EMPTY).forGetter(BoilerRecipeViewerRecipe::cooledCoolant),
-          Codec.DOUBLE.optionalFieldOf(SerializationConstants.TEMPERATURE, HeatUtils.BASE_BOIL_TEMP).forGetter(BoilerRecipeViewerRecipe::temperature)
-    ).apply(instance, (id, superHeatedCoolant, water, steam, cooledCoolant, temperature) ->
-          new BoilerRecipeViewerRecipe(id, superHeatedCoolant.orElse(null), water, steam, cooledCoolant, temperature)));
+    private static final FluidStackIngredient DEFAULT_WATER_INPUT = IngredientCreatorAccess.fluid().from(FluidTags.WATER, WATER_AMOUNT);
+    private static final ChemicalStack DEFAULT_STEAM_OUTPUT = MekanismChemicals.STEAM.asStack(WATER_AMOUNT);
+
+    public static Codec<BoilerRecipeViewerRecipe> createBaseCodec(
+          FormAlgebra<?> heated, FormAlgebra<?> cooled) {
+        return RecordCodecBuilder.create(instance -> instance.group(
+              ResourceLocation.CODEC.fieldOf(SerializationConstants.ID).forGetter(BoilerRecipeViewerRecipe::id),
+              TypedIngredient.mapCodec(heated.ingredient()).forGetter(BoilerRecipeViewerRecipe::heatedCoolant),
+              FluidStackIngredient.CODEC.optionalFieldOf(SerializationConstants.FLUID_INPUT, DEFAULT_WATER_INPUT).forGetter(BoilerRecipeViewerRecipe::water),
+              ChemicalStack.CODEC.optionalFieldOf(SerializationConstants.MAIN_OUTPUT, DEFAULT_STEAM_OUTPUT).forGetter(BoilerRecipeViewerRecipe::steam),
+              TypedStack.codec(cooled.stack()).optionalFieldOf(SerializationConstants.SECONDARY_OUTPUT, Stacks.EMPTY_CHEMICAL).forGetter(BoilerRecipeViewerRecipe::cooledCoolant),
+              Codec.DOUBLE.optionalFieldOf(SerializationConstants.TEMPERATURE, HeatUtils.BASE_BOIL_TEMP).forGetter(BoilerRecipeViewerRecipe::temperature)
+        ).apply(instance, BoilerRecipeViewerRecipe::new));
+    }
+
+    public static Codec<BoilerRecipeViewerRecipe> CHEMICAL_TO_FLUID_CODEC = createBaseCodec(Forms.CHEMICAL, Forms.FLUID);
 
     @SuppressWarnings("removal")
     public static List<BoilerRecipeViewerRecipe> getBoilerRecipes() {
@@ -53,7 +69,7 @@ public record BoilerRecipeViewerRecipe(ResourceLocation id, @Nullable ChemicalSt
         recipes.add(new BoilerRecipeViewerRecipe(
               RecipeViewerUtils.synthetic(Mekanism.rl("water"), "boiler"),
               null, water,
-              steam, ChemicalStack.EMPTY,
+              steam, Stacks.EMPTY_CHEMICAL,
               HeatUtils.BASE_BOIL_TEMP + waterToSteamHeatNecessary / (BoilerMultiblockData.CASING_HEAT_CAPACITY * MekanismConfig.general.boilerWaterConductivity.get())
         ));
         //Add recipes for all heated coolants
@@ -64,8 +80,8 @@ public record BoilerRecipeViewerRecipe(ResourceLocation id, @Nullable ChemicalSt
             long coolantAmount = Math.round(waterToSteamHeatNecessary / coolant.thermalEnthalpy());
             recipes.add(new BoilerRecipeViewerRecipe(
                   RecipeViewerUtils.synthetic(key.location(), "boiler", Mekanism.MODID),
-                  IngredientCreatorAccess.chemicalStack().fromHolder(MekanismAPI.CHEMICAL_REGISTRY.getHolderOrThrow(key), coolantAmount), water,
-                  steam, new ChemicalStack(coolant.otherChemical(), coolantAmount),
+                  Ingredients.chemical(key, coolantAmount), water,
+                  steam, Stacks.chemical(coolant.otherChemical(), coolantAmount),
                   HeatUtils.BASE_BOIL_TEMP
             ));
         }
@@ -78,8 +94,8 @@ public record BoilerRecipeViewerRecipe(ResourceLocation id, @Nullable ChemicalSt
                 long coolantAmount = Math.round(waterToSteamHeatNecessary / heatedCoolant.getThermalEnthalpy());
                 recipes.add(new BoilerRecipeViewerRecipe(
                       RecipeViewerUtils.synthetic(gas.toString(), "boiler", Mekanism.MODID),
-                      IngredientCreatorAccess.chemicalStack().from(gas, coolantAmount), water,
-                      steam, heatedCoolant.getCooledChemical().getStack(coolantAmount),
+                      Ingredients.chemical(gas, coolantAmount), water,
+                      steam, Stacks.wrap(heatedCoolant.getCooledChemical().getStack(coolantAmount)),
                       HeatUtils.BASE_BOIL_TEMP
                 ));
             }

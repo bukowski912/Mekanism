@@ -6,7 +6,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mojang.serialization.codecs.RecordCodecBuilder.Mu;
-import java.util.List;
 import mekanism.api.MekanismAPI;
 import mekanism.api.SerializationConstants;
 import mekanism.api.chemical.Chemical;
@@ -24,6 +23,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import java.util.List;
+
 /**
  * Represents the base information that coolants keep track of.
  *
@@ -38,18 +39,19 @@ public sealed interface IChemicalCoolant extends IChemicalAttribute permits Cool
 
         static HolderType forHolder(Holder<?> holder) {
             final ResourceKey<?> key = holder.getKey();
-            //Prioritize checking the value over the key
-            if (holder.isBound() || key == null) {
+            //Prioritize checking the key over the value
+            if (key != null) {
+                if (key.isFor(Registries.FLUID)) {
+                    return FLUID;
+                } else if (key.isFor(MekanismAPI.CHEMICAL_REGISTRY_NAME)) {
+                    return CHEMICAL;
+                }
+            }
+            if (holder.isBound()) {
                 final Object value = holder.value();
                 if (value instanceof Fluid) {
                     return FLUID;
                 } else if (value instanceof Chemical) {
-                    return CHEMICAL;
-                }
-            } else {
-                if (key.isFor(Registries.FLUID)) {
-                    return FLUID;
-                } else if (key.isFor(MekanismAPI.CHEMICAL_REGISTRY_NAME)) {
                     return CHEMICAL;
                 }
             }
@@ -115,6 +117,8 @@ public sealed interface IChemicalCoolant extends IChemicalAttribute permits Cool
         case CHEMICAL -> DataResult.success(Either.right((Holder<Chemical>) holder));
     });
 
+    //TODO - 1.22: remove backcompat
+    @Deprecated(forRemoval = true, since = "10.7.13")
     Codec<Holder<?>> FLUID_OR_CHEMICAL_LEGACY = Codec.withAlternative(FLUID_OR_CHEMICAL, ChemicalStack.CHEMICAL_NON_EMPTY_HOLDER_CODEC);
 
     @Override
@@ -145,8 +149,12 @@ public sealed interface IChemicalCoolant extends IChemicalAttribute permits Cool
      */
     static void validateCoolantParams(Holder<?> otherVariant, double thermalEnthalpy, double conductivity) {
         //noinspection unchecked,rawtypes
+        if (otherVariant.is((ResourceKey) MekanismAPI.EMPTY_FLUID_KEY)) {
+            throw new IllegalArgumentException("Coolant must not have an empty fluid variant");
+        }
+        //noinspection unchecked,rawtypes
         if (otherVariant.is((ResourceKey) MekanismAPI.EMPTY_CHEMICAL_KEY)) {
-            throw new IllegalArgumentException("Coolants cannot have an empty chemical variant");
+            throw new IllegalArgumentException("Coolant must not have an empty chemical variant");
         }
         if (thermalEnthalpy <= 0) {
             throw new IllegalArgumentException("Coolant must have a thermal enthalpy greater than zero! Thermal Enthalpy: " + thermalEnthalpy);

@@ -76,20 +76,24 @@ public abstract class MekanismEmiRecipe<RECIPE> extends AbstractContainerEventHa
         return renderOutputs.get(index);
     }
 
+    protected void addInputDefinition(EmiIngredient ingredient) {
+        inputs.add(ingredient);
+    }
+
     protected void addInputDefinition(ItemStackIngredient ingredient) {
-        inputs.add(ingredient(ingredient));
+        addInputDefinition(ingredient(ingredient));
     }
 
     protected void addInputDefinition(FluidStackIngredient ingredient) {
-        inputs.add(fluidIngredient(ingredient));
+        addInputDefinition(fluidIngredient(ingredient));
     }
 
     protected void addInputDefinition(ChemicalStackIngredient ingredient) {
-        inputs.add(chemicalIngredient(ingredient));
+        addInputDefinition(chemicalIngredient(ingredient));
     }
 
     protected void addInputDefinition(ChemicalStackIngredient ingredient, int scalar) {
-        inputs.add(chemicalIngredient(ingredient, scalar));
+        addInputDefinition(chemicalIngredient(ingredient, scalar));
     }
 
     protected void addEmptyInput() {
@@ -240,11 +244,11 @@ public abstract class MekanismEmiRecipe<RECIPE> extends AbstractContainerEventHa
         return EmiIngredient.of(representations.stream().map(EmiStack::of).toList());
     }
 
-    protected EmiIngredient fluidIngredient(FluidStackIngredient ingredient) {
+    public static EmiIngredient fluidIngredient(FluidStackIngredient ingredient) {
         return EmiIngredient.of(ingredient.getRepresentations().stream().map(NeoForgeEmiStack::of).toList());
     }
 
-    protected EmiIngredient chemicalIngredient(ChemicalStackIngredient ingredient) {
+    public static EmiIngredient chemicalIngredient(ChemicalStackIngredient ingredient) {
         return EmiIngredient.of(ingredient.getRepresentations().stream().map(ChemicalEmiStack::new).toList());
     }
 
